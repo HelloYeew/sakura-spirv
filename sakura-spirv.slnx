@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Sakura.Framework.SPIRV.Tests/Sakura.Framework.SPIRV.Tests.csproj" />
+  <Project Path="Sakura.Framework.SPIRV/Sakura.Framework.SPIRV.csproj" />
+</Solution>

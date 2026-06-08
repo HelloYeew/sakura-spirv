@@ -1,0 +1,79 @@
+name: Publish to NuGet
+
+on:
+  workflow_dispatch:
+    inputs:
+      patch:
+        description: 'Patch number (the last segment of YYYY.MMDD.patch)'
+        required: false
+        default: '0'
+
+permissions:
+  contents: write
+  id-token: write  # required for NuGet Trusted Publishing (OIDC)
+
+jobs:
+  publish:
+    name: Pack and Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Compute CalVer version
+        id: version
+        run: |
+          YEAR=$(date -u +'%Y')
+          MMDD=$(date -u +'%m%d')
+          PATCH=${{ github.event.inputs.patch }}
+          VERSION="${YEAR}.${MMDD}.${PATCH}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Pack
+        run: |
+          dotnet pack Sakura.Framework.SPIRV/Sakura.Framework.SPIRV.csproj \
+            --configuration Release \
+            -p:Version=${{ steps.version.outputs.version }} \
+            --output ./nupkg
+
+      - name: NuGet login (Trusted Publishing)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Publish to nuget.org
+        run: |
+          dotnet nuget push ./nupkg/*.nupkg \
+            --api-key ${{ steps.login.outputs.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Tag release
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}
+
+      - name: Create GitHub Release (draft)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ steps.version.outputs.version }} \
+            ./nupkg/*.nupkg \
+            --title "${{ steps.version.outputs.version }}" \
+            --draft \
+            --generate-notes
+
+      - name: Upload nupkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: ./nupkg/*.nupkg
