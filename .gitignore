@@ -22,6 +22,11 @@ mono_crash.*
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+
+# Keep pre-built native binaries committed to the repo
+!Sakura.Framework.SPIRV/build/
+!Sakura.Framework.SPIRV/build/Release/
+!Sakura.Framework.SPIRV/build/Release/**
 x64/
 x86/
 [Ww][Ii][Nn]32/
