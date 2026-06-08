@@ -29,9 +29,10 @@ jobs:
         id: version
         run: |
           YEAR=$(date -u +'%Y')
-          MMDD=$(date -u +'%m%d')
+          MM=$(date -u +'%-m')
+          DD=$(date -u +'%d')
           PATCH=${{ github.event.inputs.patch }}
-          VERSION="${YEAR}.${MMDD}.${PATCH}"
+          VERSION="${YEAR}.${MM}${DD}.${PATCH}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
