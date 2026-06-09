@@ -9,8 +9,9 @@
   <PropertyGroup>
     <PackageId>Sakura.Framework.SPIRV</PackageId>
     <Authors>HelloYeew</Authors>
+    <Copyright>Copyright (c) 2026 HelloYeew</Copyright>
     <Description>Self-contained GLSL and SPIR-V compilation and SPIR-V cross-compilation libraries that are usable cross-platform</Description>
-    <PackageTags>spirv glsl hlsl msl essl metal shader cross-compile gpu sakura-framework</PackageTags>
+    <PackageTags>spirv glsl hlsl msl essl metal shader cross-compile gpu sakura framework</PackageTags>
     <RepositoryUrl>https://github.com/HelloYeew/sakura-spirv</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
