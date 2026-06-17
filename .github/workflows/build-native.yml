@@ -140,6 +140,9 @@ jobs:
         run: |
           BASE="Sakura.Framework.SPIRV/build/Release"
 
+          rm -rf "$BASE"
+          mkdir -p "$BASE"
+
           place() {
             local src=$1 rid=$2 filename=$3
             mkdir -p "$BASE/$rid"
@@ -158,7 +161,7 @@ jobs:
           place artifacts/android-x86/libsakura-spirv.so android-x86 libsakura-spirv.so
 
           mkdir -p "$BASE/ios"
-          unzip -qq artifacts/ios/sakura-spirv.xcframework.zip -d "$BASE/ios"
+          unzip -o -qq artifacts/ios/sakura-spirv.xcframework.zip -d "$BASE/ios"
 
       - name: Commit and push PR branch
         run: |
