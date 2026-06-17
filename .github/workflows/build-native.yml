@@ -75,7 +75,7 @@ jobs:
 
     name: ${{ matrix.build_target }} Native Build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
@@ -130,9 +130,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: native_builds
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: artifacts
 
