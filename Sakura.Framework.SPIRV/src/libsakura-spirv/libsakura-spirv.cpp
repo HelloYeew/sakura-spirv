@@ -224,6 +224,8 @@ Compiler *GetCompiler(std::vector<uint32_t> spirvBytes, const CrossCompileInfo &
         auto ret = new CompilerMSL(spirvBytes);
         CompilerMSL::Options opts = {};
         opts.enable_decoration_binding = true;
+        // MSL 2.0+ is required for arrays of textures (the main shader uses sampler2D u_Textures[8]).
+        opts.msl_version = CompilerMSL::Options::make_msl_version(2, 0);
         ret->set_msl_options(opts);
         CompilerGLSL::Options commonOpts;
         commonOpts.vertex.flip_vert_y = info.InvertY;
