@@ -43,6 +43,69 @@ jobs:
             -p:Version=${{ steps.version.outputs.version }} \
             --output ./nupkg
 
+      - name: Verify package contents
+        run: |
+          set -eu
+
+          pkg=$(ls ./nupkg/*.nupkg)
+          echo "Inspecting $pkg"
+
+          entries=$(unzip -Z1 "$pkg")
+          csproj="Sakura.Framework.SPIRV/Sakura.Framework.SPIRV.csproj"
+          natives_dir="Sakura.Framework.SPIRV/build/Release"
+          failed=0
+          checked=0
+
+          # Expected RIDs come from the csproj's own PackagePath declarations, not from what happens
+          # to be on disk. Deriving them from the binaries would make a missing binary invisible: it
+          # would drop out of the expected list and the package at the same time, which is precisely
+          # the failure this step exists to catch. Adding a RID to the csproj extends this check for
+          # free.
+          rids=$(grep -o 'runtimes/[A-Za-z0-9._-]*/native' "$csproj" | cut -d/ -f2 | sort -u)
+
+          for rid in $rids; do
+              checked=$((checked + 1))
+              packed=$(printf '%s\n' "$entries" | grep -c "^runtimes/$rid/" || true)
+
+              if [ "$packed" -eq 0 ]; then
+                  echo "::error::$csproj declares runtimes/$rid but the package contains none of it. Its native is probably missing from $natives_dir — every include is wrapped in Condition=\"Exists(...)\", so pack drops it without complaint."
+                  failed=1
+                  continue
+              fi
+
+              # When the source directory is present, require an exact match so a partially packed
+              # payload fails too.
+              if [ -d "$natives_dir/$rid" ]; then
+                  on_disk=$(find "$natives_dir/$rid" -type f ! -name '.*' | wc -l | tr -d ' ')
+
+                  if [ "$packed" -ne "$on_disk" ]; then
+                      echo "::error::runtimes/$rid: $on_disk file(s) on disk, $packed packed — something was dropped."
+                      failed=1
+                      continue
+                  fi
+              fi
+
+              echo "  runtimes/$rid: $packed file(s)"
+          done
+
+          if [ "$checked" -eq 0 ]; then
+              echo "::error::No runtimes/<rid>/native PackagePath entries found in $csproj."
+              exit 1
+          fi
+
+          # An xcframework is a directory tree, so it is packed by a recursive glob whose PackagePath
+          # is easy to get one level wrong. Assert the canonical path rather than just the file count,
+          # which a wrongly nested bundle would still satisfy.
+          if printf '%s\n' "$entries" | grep -q "^runtimes/ios/"; then
+              if ! printf '%s\n' "$entries" | grep -q "^runtimes/ios/native/sakura-spirv.xcframework/Info.plist$"; then
+                  echo "::error::runtimes/ios payload is not laid out as runtimes/ios/native/sakura-spirv.xcframework/. Check the PackagePath on the ios include."
+                  failed=1
+              fi
+          fi
+
+          [ "$failed" -eq 0 ] || exit 1
+          echo "All $checked declared runtime identifiers present."
+
       - name: NuGet login (Trusted Publishing)
         uses: NuGet/login@v1
         id: login

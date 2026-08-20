@@ -50,8 +50,14 @@
       <PackagePath>runtimes/linux-arm64/native</PackagePath>
       <Pack>true</Pack>
     </None>
+    <!--
+      the glob already preserves `sakura-spirv.xcframework/...` from the match, so naming the bundle here too produced
+      `runtimes/ios/native/sakura-spirv.xcframework/sakura-spirv.xcframework/` one level deeper
+      than anything looks, and inconsistent with how Sakura.Framework.NativeLibraries lays its
+      xcframeworks out.
+    -->
     <None Include="$(NativeAssetsPath)ios/**/*.xcframework/**/*" Condition="Exists('$(NativeAssetsPath)ios/')">
-      <PackagePath>runtimes/ios/native/sakura-spirv.xcframework</PackagePath>
+      <PackagePath>runtimes/ios/native</PackagePath>
       <Pack>true</Pack>
     </None>
     <None Include="$(NativeAssetsPath)android-arm/libsakura-spirv.so" Condition="Exists('$(NativeAssetsPath)android-arm/libsakura-spirv.so')">
