@@ -110,6 +110,48 @@ jobs:
         if: runner.os != 'Windows'
         run: bash build-native.sh ${{ matrix.build_args }}
 
+      - name: Check ${{ matrix.build_target }} exports its ABI
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # PE exports nothing unless asked. Every entry point here is tagged VD_EXPORT
+          # (__declspec(dllexport) on _WIN32), so this passes today -- it is here so that it keeps
+          # passing. A new entry point added without the macro, or the macro quietly becoming a no-op,
+          # produces a DLL that builds, links, packages and publishes while missing the symbol the
+          # managed side P/Invokes, and the only symptom is an EntryPointNotFoundException at runtime
+          # on Windows alone. The sibling sakura-audio library shipped exactly that on all three
+          # Windows RIDs for months, undetected, because nothing ever asked the artefact what it
+          # exports.
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+
+          if (-not (Test-Path $vswhere)) {
+            Write-Host "::warning::vswhere not found; skipping the export check."
+            exit 0
+          }
+
+          $vs = & $vswhere -latest -property installationPath
+          $dumpbin = Get-ChildItem -Path "$vs\VC\Tools\MSVC" -Recurse -Filter dumpbin.exe -ErrorAction SilentlyContinue |
+                     Select-Object -First 1
+
+          if (-not $dumpbin) {
+            Write-Host "::warning::dumpbin not found; skipping the export check."
+            exit 0
+          }
+
+          $exports = & $dumpbin.FullName /exports "${{ matrix.artifact_name }}"
+          $exports | Write-Host
+
+          # The full managed-facing surface, not just one of them: a header only half-tagged would
+          # otherwise pass on whichever symbol happened to be checked.
+          foreach ($symbol in @('CompileGlslToSpirv', 'CrossCompile', 'FreeResult')) {
+            if (-not ($exports | Select-String -Pattern "\b$symbol\b" -Quiet)) {
+              Write-Host "::error::libsakura-spirv.dll does not export $symbol, so the managed side cannot call it."
+              exit 1
+            }
+          }
+
+          Write-Host "All three entry points are exported."
+
       - name: Compress iOS xcframework for upload
         if: matrix.build_target == 'ios'
         working-directory: Sakura.Framework.SPIRV
