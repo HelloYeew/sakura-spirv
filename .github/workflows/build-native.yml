@@ -110,6 +110,38 @@ jobs:
         if: runner.os != 'Windows'
         run: bash build-native.sh ${{ matrix.build_args }}
 
+      - name: Check ${{ matrix.build_target }} loads on its own and is 16 KB aligned
+        if: startsWith(matrix.build_target, 'android')
+        shell: bash
+        run: |
+          # An Android app ships only the native libraries it is handed. A NEEDED entry on
+          # libc++_shared.so, which is what ANDROID_STL=c++_shared produces, builds, packages and
+          # publishes fine, then fails to load on the device because nothing puts that library in the
+          # APK. Google Play separately rejects 64-bit libraries whose LOAD segments are aligned below
+          # 16 KB, because Android 15+ devices may use 16 KB pages.
+          READELF="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          lib="${{ matrix.artifact_name }}"
+
+          "$READELF" -d "$lib" | grep NEEDED || true
+
+          if "$READELF" -d "$lib" | grep -q 'libc++_shared\.so'; then
+            echo "::error::$lib needs libc++_shared.so, which no app ships alongside it. Link the STL statically (ANDROID_STL=c++_static)."
+            exit 1
+          fi
+
+          case "${{ matrix.build_target }}" in
+            android-arm64-v8a|android-x86_64)
+              for align in $("$READELF" -lW "$lib" | awk '$1 == "LOAD" { print $NF }'); do
+                if (( align < 0x4000 )); then
+                  echo "::error::$lib has a LOAD segment aligned to $align, below the 16 KB (0x4000) that Android 15+ devices require."
+                  exit 1
+                fi
+              done
+              ;;
+          esac
+
+          echo "$lib depends only on system libraries and is aligned for its ABI."
+
       - name: Check ${{ matrix.build_target }} exports its ABI
         if: runner.os == 'Windows'
         shell: pwsh

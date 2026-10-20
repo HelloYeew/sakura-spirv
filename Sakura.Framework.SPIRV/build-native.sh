@@ -74,7 +74,7 @@ if [[ $_OSDir == android-* ]]; then
         -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
         -DANDROID_ABI="$_AndroidABI" \
         -DANDROID_PLATFORM=android-21 \
-        -DANDROID_STL=c++_shared \
+        -DANDROID_STL=c++_static \
         -DCMAKE_C_FLAGS_MINSIZEREL="-Os -DNDEBUG" \
         -DCMAKE_CXX_FLAGS_MINSIZEREL="-Os -DNDEBUG" \
         -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--strip-all" \
