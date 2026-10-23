@@ -125,6 +125,10 @@ elif [[ $_OSDir == "ios" ]]; then
 	    ./simulator-build-x64/Release-iphonesimulator/sakura-spirv.framework/sakura-spirv \
 	 -output ./simulator-build-combined/sakura-spirv.framework/sakura-spirv
 
+    # The checkout already holds the committed xcframework here, and xcodebuild won't write over it: it fails, the
+    # script carries on, and the old binaries get packed again.
+    rm -rf ./sakura-spirv.xcframework
+
     xcodebuild -create-xcframework \
 	    -framework ./device-build/Release-iphoneos/sakura-spirv.framework \
 	    -framework ./simulator-build-combined/sakura-spirv.framework \
